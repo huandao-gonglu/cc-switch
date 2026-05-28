@@ -1,0 +1,191 @@
+{
+  "tasks": [
+    {
+      "taskId": "csv_moving_average",
+      "title": "CSV moving average",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现：\n1. 读取 CSV（来自 stdin），字段为 symbol,date,close\n2. 按 symbol 分组并保持原始行顺序输出\n3. 计算每组 close 的 5 日、20 日移动平均\n4. 输出字段必须为 symbol,date,close,ma5,ma20\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 移动平均不足窗口时输出空字符串\n- 移动平均保留两位小数\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "single_symbol_6_rows",
+          "stdin": "symbol,date,close\nAAPL,2026-01-01,1\nAAPL,2026-01-02,2\nAAPL,2026-01-03,3\nAAPL,2026-01-04,4\nAAPL,2026-01-05,5\nAAPL,2026-01-06,6\n"
+        },
+        {
+          "caseId": "two_symbols_interleaved",
+          "stdin": "symbol,date,close\nMSFT,2026-01-01,10\nAAPL,2026-01-01,1\nMSFT,2026-01-02,20\nAAPL,2026-01-02,2\nMSFT,2026-01-03,30\nAAPL,2026-01-03,3\nMSFT,2026-01-04,40\nAAPL,2026-01-04,4\nMSFT,2026-01-05,50\nAAPL,2026-01-05,5\n"
+        }
+      ]
+    },
+    {
+      "taskId": "limit_order_matching",
+      "title": "Limit order matching",
+      "difficulty": "medium-high",
+      "statement": "请用 Python 写一个完整脚本，实现一个简化限价订单撮合引擎。\n\n输入来自 stdin，是 CSV，字段为 order_id,side,price,qty，其中 side 为 B 或 S。按输入顺序处理订单：买单可以和价格小于等于买价的卖单成交，卖单可以和价格大于等于卖价的买单成交。撮合优先级：买盘价格高者优先，卖盘价格低者优先；同价时先进入订单簿的订单优先。成交价使用 maker 订单价格。未成交数量进入订单簿。\n\n输出 CSV 字段必须为 trade_id,maker_order_id,taker_order_id,price,qty。trade_id 从 1 开始递增。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "basic_cross",
+          "stdin": "order_id,side,price,qty\nS1,S,100,5\nB1,B,101,3\nB2,B,100,4\nS2,S,99,5\n"
+        },
+        {
+          "caseId": "price_priority",
+          "stdin": "order_id,side,price,qty\nB1,B,100,2\nB2,B,102,4\nS1,S,99,3\nS2,S,101,5\n"
+        }
+      ]
+    },
+    {
+      "taskId": "sliding_window_rate_limiter",
+      "title": "Sliding window rate limiter",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现滑动窗口限流判定。\n\n输入来自 stdin，是 CSV，字段为 user_id,timestamp,limit,window。按输入顺序处理请求。对每个 user_id，统计 [timestamp-window, timestamp) 内已经被允许的请求数量；若数量小于 limit，则本次 ALLOW 并加入窗口，否则 BLOCK 且不加入窗口。边界规则：时间等于 timestamp-window 的旧请求应被移出窗口。\n\n输出 CSV 字段必须为 user_id,timestamp,decision,active_count，其中 active_count 是处理当前请求后的该用户窗口内已允许请求数。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "single_user",
+          "stdin": "user_id,timestamp,limit,window\nu1,0,2,10\nu1,3,2,10\nu1,9,2,10\nu1,10,2,10\nu1,13,2,10\n"
+        },
+        {
+          "caseId": "multi_user",
+          "stdin": "user_id,timestamp,limit,window\nu1,1,1,5\nu2,2,2,5\nu1,3,1,5\nu2,4,2,5\nu2,6,2,5\nu1,7,1,5\n"
+        }
+      ]
+    },
+    {
+      "taskId": "fifo_inventory_valuation",
+      "title": "FIFO inventory valuation",
+      "difficulty": "medium-high",
+      "statement": "请用 Python 写一个完整脚本，实现 FIFO 库存成本核算。\n\n输入来自 stdin，是 CSV，字段为 event_id,sku,type,qty,unit_cost。type 为 IN 时，qty 数量按 unit_cost 入库；type 为 OUT 时，按 FIFO 消耗该 sku 的库存批次并计算 cogs。若出库数量超过当前库存，则 cogs 输出 -1，并把该 sku 库存清空。\n\n每处理一行都输出一行结果。输出 CSV 字段必须为 sku,event_id,remaining_qty,inventory_value,cogs。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "single_sku",
+          "stdin": "event_id,sku,type,qty,unit_cost\nE1,A,IN,10,5\nE2,A,OUT,4,\nE3,A,IN,3,7\nE4,A,OUT,8,\n"
+        },
+        {
+          "caseId": "multi_sku",
+          "stdin": "event_id,sku,type,qty,unit_cost\nE1,A,IN,5,10\nE2,B,IN,2,4\nE3,A,OUT,3,\nE4,B,OUT,1,\nE5,A,OUT,5,\n"
+        }
+      ]
+    },
+    {
+      "taskId": "user_sessionization",
+      "title": "User sessionization",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现用户会话切分。\n\n输入来自 stdin，是 CSV，字段为 user_id,timestamp,event。输入可能不是按时间排序。对每个 user_id，先按 timestamp 升序排序；相邻事件时间差大于 30 时开启新 session，否则属于同一 session。\n\n输出 CSV 字段必须为 user_id,session_id,start,end,event_count。user_id 按字典序输出，每个用户内 session_id 从 1 开始。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "basic",
+          "stdin": "user_id,timestamp,event\nu1,0,open\nu1,10,click\nu1,45,click\nu2,5,open\nu2,35,click\nu2,70,close\n"
+        },
+        {
+          "caseId": "unsorted",
+          "stdin": "user_id,timestamp,event\nu1,100,a\nu1,20,b\nu1,50,c\nu1,51,d\nu2,1,x\nu2,40,y\n"
+        }
+      ]
+    },
+    {
+      "taskId": "last_touch_attribution",
+      "title": "Last-touch attribution",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现广告 last-touch 归因。\n\n输入来自 stdin，是 CSV，字段为 event_id,user_id,timestamp,event_type,campaign。event_type 为 impression 或 purchase。按输入顺序处理事件。每个 purchase 归因给同一用户在过去 7 天内最近一次 impression 的 campaign；若没有符合条件的 impression，则归因为 direct。7 天等于 604800 秒，边界包含 604800。\n\n只输出 purchase 事件。输出 CSV 字段必须为 purchase_id,user_id,attributed_campaign。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "mixed",
+          "stdin": "event_id,user_id,timestamp,event_type,campaign\nI1,u1,0,impression,A\nP1,u1,100,purchase,\nI2,u1,200,impression,B\nP2,u1,700000,purchase,\nP3,u2,10,purchase,\n"
+        },
+        {
+          "caseId": "expiry",
+          "stdin": "event_id,user_id,timestamp,event_type,campaign\nI1,u1,0,impression,A\nP1,u1,604800,purchase,\nP2,u1,604801,purchase,\nI2,u2,100,impression,C\nP3,u2,200,purchase,\n"
+        }
+      ]
+    },
+    {
+      "taskId": "fraud_signal_rules",
+      "title": "Fraud signal rules",
+      "difficulty": "medium-high",
+      "statement": "请用 Python 写一个完整脚本，实现交易风控信号标记。\n\n输入来自 stdin，是 CSV，字段为 tx_id,card_id,timestamp,amount,country。按输入顺序处理。规则：amount > 1000 标记 HIGH_AMOUNT；同一卡上一次交易和当前交易 country 不同且时间差 <= 120 秒，标记 COUNTRY_JUMP；同一卡上一次交易和当前交易时间差 <= 10 秒，标记 RAPID_REPEAT。多个信号按 HIGH_AMOUNT,COUNTRY_JUMP,RAPID_REPEAT 的发现顺序用 | 拼接；没有信号输出 OK。\n\n输出 CSV 字段必须为 tx_id,card_id,risk。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "signals",
+          "stdin": "tx_id,card_id,timestamp,amount,country\nT1,C1,0,500,US\nT2,C1,5,200,US\nT3,C1,100,1200,CA\nT4,C2,0,1500,FR\nT5,C2,200,20,DE\n"
+        },
+        {
+          "caseId": "clean_and_jump",
+          "stdin": "tx_id,card_id,timestamp,amount,country\nT1,C1,0,100,US\nT2,C1,130,100,CA\nT3,C1,135,100,MX\nT4,C1,300,100,MX\n"
+        }
+      ]
+    },
+    {
+      "taskId": "courier_eta_status",
+      "title": "Courier ETA status",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现配送 ETA 判定。\n\n输入来自 stdin，是 CSV，字段为 order_id,pickup_time,distance,speed,deadline。travel_time = ceil(distance / speed)，arrival_time = pickup_time + travel_time。若 arrival_time <= deadline，则状态为 ON_TIME，否则 LATE。\n\n输出 CSV 字段必须为 order_id,arrival_time,status。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "ceil_time",
+          "stdin": "order_id,pickup_time,distance,speed,deadline\nO1,0,10,3,4\nO2,5,9,2,9\nO3,10,1,5,10\n"
+        },
+        {
+          "caseId": "mixed",
+          "stdin": "order_id,pickup_time,distance,speed,deadline\nA,100,25,10,103\nB,100,25,10,102\nC,0,0,5,0\n"
+        }
+      ]
+    },
+    {
+      "taskId": "abtest_conversion_summary",
+      "title": "A/B test conversion summary",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现 A/B 测试转化率汇总。\n\n输入来自 stdin，是 CSV，字段为 user_id,variant,converted。converted 为 0 或 1。按 variant 字典序输出每个 variant 的 visitors、conversions、conversion_rate，conversion_rate 保留四位小数。最后追加一行 WINNER，第二列为转化率最高的 variant；若转化率相同，选择字典序更大的 variant。\n\n输出 CSV 字段必须为 variant,visitors,conversions,conversion_rate。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "basic",
+          "stdin": "user_id,variant,converted\nu1,A,1\nu2,A,0\nu3,B,1\nu4,B,1\nu5,C,0\n"
+        },
+        {
+          "caseId": "tie",
+          "stdin": "user_id,variant,converted\nu1,A,1\nu2,A,0\nu3,B,1\nu4,B,0\n"
+        }
+      ]
+    },
+    {
+      "taskId": "search_query_topk",
+      "title": "Search query top K",
+      "difficulty": "medium",
+      "statement": "请用 Python 写一个完整脚本，实现搜索词 Top 3 汇总。\n\n输入来自 stdin，是 CSV，字段为 query,count。同一个 query 可能出现多次，需要累加 count。按 total_count 降序排序；若 total_count 相同，按 query 字典序升序排序。只输出前 3 名，不足 3 名则输出全部。\n\n输出 CSV 字段必须为 rank,query,total_count。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "aggregate",
+          "stdin": "query,count\ncat,10\ndog,5\ncat,4\nant,20\ndog,20\nbee,25\n"
+        },
+        {
+          "caseId": "tie_break",
+          "stdin": "query,count\nz,10\na,10\nm,9\nb,10\n"
+        }
+      ]
+    },
+    {
+      "taskId": "payment_reconciliation",
+      "title": "Payment reconciliation",
+      "difficulty": "medium-high",
+      "statement": "请用 Python 写一个完整脚本，实现支付对账。\n\n输入来自 stdin，是 CSV，字段为 payment_id,source,amount。source 为 ledger 或 bank。按 payment_id 聚合：两边都有且金额相等为 MATCH；两边都有但金额不同为 AMOUNT_MISMATCH；只有 ledger 为 MISSING_BANK；只有 bank 为 MISSING_LEDGER。按 payment_id 字典序输出。\n\n输出 CSV 字段必须为 payment_id,status,ledger_amount,bank_amount。缺失金额输出空字符串。\n\n要求：\n- 代码完整可运行\n- 包含 argparse\n- 包含异常处理\n- 不要解释，只输出代码",
+      "timeoutSec": 5,
+      "tests": [
+        {
+          "caseId": "statuses",
+          "stdin": "payment_id,source,amount\nP1,ledger,100\nP1,bank,100\nP2,ledger,50\nP3,bank,70\nP4,ledger,20\nP4,bank,25\n"
+        },
+        {
+          "caseId": "sorted",
+          "stdin": "payment_id,source,amount\nB,bank,1\nA,ledger,2\nB,ledger,1\nC,bank,3\nA,bank,2\n"
+        }
+      ]
+    }
+  ]
+}

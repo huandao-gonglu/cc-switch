@@ -1244,6 +1244,12 @@ pub fn run() {
             // Session usage sync
             commands::sync_session_usage,
             commands::get_usage_data_sources,
+            // API benchmark
+            commands::list_api_benchmark_entries,
+            commands::run_api_benchmark,
+            commands::run_api_benchmark_provider,
+            commands::update_api_benchmark_concurrency,
+            commands::rerun_api_benchmark_python,
             // Stream health check
             commands::stream_check_provider,
             commands::stream_check_all_providers,

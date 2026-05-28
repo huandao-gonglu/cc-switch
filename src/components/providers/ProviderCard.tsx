@@ -21,6 +21,13 @@ import { FailoverPriorityBadge } from "@/components/providers/FailoverPriorityBa
 import { extractCodexBaseUrl } from "@/utils/providerConfigUtils";
 import { useProviderHealth } from "@/lib/query/failover";
 import { useUsageQuery } from "@/lib/query/queries";
+import { ApiBenchmarkPanel } from "@/components/usage/ApiBenchmarkPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DragHandleProps {
   attributes: DraggableAttributes;
@@ -215,6 +222,7 @@ export function ProviderCard({
     usage?.success && usage.data && usage.data.length > 1 && !isTokenPlan;
 
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isBenchmarkOpen, setIsBenchmarkOpen] = useState(false);
 
   useEffect(() => {
     if (hasMultiplePlans) {
@@ -252,6 +260,11 @@ export function ProviderCard({
     (!isAnyOmo &&
       !isProxyTakeover &&
       (isActiveProvider || hasPersistentConfigHighlight));
+  const supportsApiBenchmark =
+    (appId === "codex" || appId === "openclaw" || appId === "opencode") &&
+    !isOfficial &&
+    !isCopilot &&
+    !isCodexOauth;
 
   return (
     <div
@@ -477,6 +490,11 @@ export function ProviderCard({
                   ? () => onTest(provider)
                   : undefined
               }
+              onApiBenchmark={
+                supportsApiBenchmark
+                  ? () => setIsBenchmarkOpen(true)
+                  : undefined
+              }
               onConfigureUsage={
                 isOfficial || isCopilot || isCodexOauth
                   ? undefined
@@ -516,6 +534,23 @@ export function ProviderCard({
           />
         </div>
       )}
+
+      <Dialog open={isBenchmarkOpen} onOpenChange={setIsBenchmarkOpen}>
+        <DialogContent className="max-w-[min(96vw,1200px)]">
+          <DialogHeader>
+            <DialogTitle>{t("apiBenchmark.title")}</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[calc(90vh-96px)] overflow-auto px-6 py-5">
+            {isBenchmarkOpen && (
+              <ApiBenchmarkPanel
+                appId={appId}
+                providerId={provider.id}
+                providerName={provider.name}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

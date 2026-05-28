@@ -1,0 +1,114 @@
+{
+  "answers": [
+    {
+      "taskId": "csv_moving_average",
+      "caseId": "single_symbol_6_rows",
+      "expectedStdout": "symbol,date,close,ma5,ma20\nAAPL,2026-01-01,1,,\nAAPL,2026-01-02,2,,\nAAPL,2026-01-03,3,,\nAAPL,2026-01-04,4,,\nAAPL,2026-01-05,5,3.00,\nAAPL,2026-01-06,6,4.00,\n"
+    },
+    {
+      "taskId": "csv_moving_average",
+      "caseId": "two_symbols_interleaved",
+      "expectedStdout": "symbol,date,close,ma5,ma20\nMSFT,2026-01-01,10,,\nAAPL,2026-01-01,1,,\nMSFT,2026-01-02,20,,\nAAPL,2026-01-02,2,,\nMSFT,2026-01-03,30,,\nAAPL,2026-01-03,3,,\nMSFT,2026-01-04,40,,\nAAPL,2026-01-04,4,,\nMSFT,2026-01-05,50,30.00,\nAAPL,2026-01-05,5,3.00,\n"
+    },
+    {
+      "taskId": "limit_order_matching",
+      "caseId": "basic_cross",
+      "expectedStdout": "trade_id,maker_order_id,taker_order_id,price,qty\n1,S1,B1,100,3\n2,S1,B2,100,2\n3,B2,S2,100,2\n"
+    },
+    {
+      "taskId": "limit_order_matching",
+      "caseId": "price_priority",
+      "expectedStdout": "trade_id,maker_order_id,taker_order_id,price,qty\n1,B2,S1,102,3\n2,B2,S2,102,1\n"
+    },
+    {
+      "taskId": "sliding_window_rate_limiter",
+      "caseId": "single_user",
+      "expectedStdout": "user_id,timestamp,decision,active_count\nu1,0,ALLOW,1\nu1,3,ALLOW,2\nu1,9,BLOCK,2\nu1,10,ALLOW,2\nu1,13,ALLOW,2\n"
+    },
+    {
+      "taskId": "sliding_window_rate_limiter",
+      "caseId": "multi_user",
+      "expectedStdout": "user_id,timestamp,decision,active_count\nu1,1,ALLOW,1\nu2,2,ALLOW,1\nu1,3,BLOCK,1\nu2,4,ALLOW,2\nu2,6,BLOCK,2\nu1,7,ALLOW,1\n"
+    },
+    {
+      "taskId": "fifo_inventory_valuation",
+      "caseId": "single_sku",
+      "expectedStdout": "sku,event_id,remaining_qty,inventory_value,cogs\nA,E1,10,50,0\nA,E2,6,30,20\nA,E3,9,51,0\nA,E4,1,7,44\n"
+    },
+    {
+      "taskId": "fifo_inventory_valuation",
+      "caseId": "multi_sku",
+      "expectedStdout": "sku,event_id,remaining_qty,inventory_value,cogs\nA,E1,5,50,0\nB,E2,2,8,0\nA,E3,2,20,30\nB,E4,1,4,4\nA,E5,0,0,-1\n"
+    },
+    {
+      "taskId": "user_sessionization",
+      "caseId": "basic",
+      "expectedStdout": "user_id,session_id,start,end,event_count\nu1,1,0,10,2\nu1,2,45,45,1\nu2,1,5,35,2\nu2,2,70,70,1\n"
+    },
+    {
+      "taskId": "user_sessionization",
+      "caseId": "unsorted",
+      "expectedStdout": "user_id,session_id,start,end,event_count\nu1,1,20,51,3\nu1,2,100,100,1\nu2,1,1,1,1\nu2,2,40,40,1\n"
+    },
+    {
+      "taskId": "last_touch_attribution",
+      "caseId": "mixed",
+      "expectedStdout": "purchase_id,user_id,attributed_campaign\nP1,u1,A\nP2,u1,direct\nP3,u2,direct\n"
+    },
+    {
+      "taskId": "last_touch_attribution",
+      "caseId": "expiry",
+      "expectedStdout": "purchase_id,user_id,attributed_campaign\nP1,u1,A\nP2,u1,direct\nP3,u2,C\n"
+    },
+    {
+      "taskId": "fraud_signal_rules",
+      "caseId": "signals",
+      "expectedStdout": "tx_id,card_id,risk\nT1,C1,OK\nT2,C1,RAPID_REPEAT\nT3,C1,HIGH_AMOUNT|COUNTRY_JUMP\nT4,C2,HIGH_AMOUNT\nT5,C2,OK\n"
+    },
+    {
+      "taskId": "fraud_signal_rules",
+      "caseId": "clean_and_jump",
+      "expectedStdout": "tx_id,card_id,risk\nT1,C1,OK\nT2,C1,OK\nT3,C1,COUNTRY_JUMP|RAPID_REPEAT\nT4,C1,OK\n"
+    },
+    {
+      "taskId": "courier_eta_status",
+      "caseId": "ceil_time",
+      "expectedStdout": "order_id,arrival_time,status\nO1,4,ON_TIME\nO2,10,LATE\nO3,11,LATE\n"
+    },
+    {
+      "taskId": "courier_eta_status",
+      "caseId": "mixed",
+      "expectedStdout": "order_id,arrival_time,status\nA,103,ON_TIME\nB,103,LATE\nC,0,ON_TIME\n"
+    },
+    {
+      "taskId": "abtest_conversion_summary",
+      "caseId": "basic",
+      "expectedStdout": "variant,visitors,conversions,conversion_rate\nA,2,1,0.5000\nB,2,2,1.0000\nC,1,0,0.0000\nWINNER,B,,\n"
+    },
+    {
+      "taskId": "abtest_conversion_summary",
+      "caseId": "tie",
+      "expectedStdout": "variant,visitors,conversions,conversion_rate\nA,2,1,0.5000\nB,2,1,0.5000\nWINNER,B,,\n"
+    },
+    {
+      "taskId": "search_query_topk",
+      "caseId": "aggregate",
+      "expectedStdout": "rank,query,total_count\n1,bee,25\n2,dog,25\n3,ant,20\n"
+    },
+    {
+      "taskId": "search_query_topk",
+      "caseId": "tie_break",
+      "expectedStdout": "rank,query,total_count\n1,a,10\n2,b,10\n3,z,10\n"
+    },
+    {
+      "taskId": "payment_reconciliation",
+      "caseId": "statuses",
+      "expectedStdout": "payment_id,status,ledger_amount,bank_amount\nP1,MATCH,100,100\nP2,MISSING_BANK,50,\nP3,MISSING_LEDGER,,70\nP4,AMOUNT_MISMATCH,20,25\n"
+    },
+    {
+      "taskId": "payment_reconciliation",
+      "caseId": "sorted",
+      "expectedStdout": "payment_id,status,ledger_amount,bank_amount\nA,MATCH,2,2\nB,MATCH,1,1\nC,MISSING_LEDGER,,3\n"
+    }
+  ]
+}

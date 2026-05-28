@@ -2,6 +2,7 @@ import {
   BarChart3,
   Check,
   Copy,
+  FlaskConical,
   Edit,
   Loader2,
   Minus,
@@ -29,6 +30,7 @@ interface ProviderActionsProps {
   onEdit: () => void;
   onDuplicate: () => void;
   onTest?: () => void;
+  onApiBenchmark?: () => void;
   onConfigureUsage?: () => void;
   onDelete: () => void;
   onRemoveFromConfig?: () => void;
@@ -56,6 +58,7 @@ export function ProviderActions({
   onEdit,
   onDuplicate,
   onTest,
+  onApiBenchmark,
   onConfigureUsage,
   onDelete,
   onRemoveFromConfig,
@@ -299,6 +302,20 @@ export function ProviderActions({
           ) : (
             <TestTube2 className="h-4 w-4" />
           )}
+        </Button>
+
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onApiBenchmark || undefined}
+          title={t("apiBenchmark.title", "API 基准测试")}
+          className={cn(
+            iconButtonClass,
+            !onApiBenchmark &&
+              "opacity-40 cursor-not-allowed text-muted-foreground",
+          )}
+        >
+          <FlaskConical className="h-4 w-4" />
         </Button>
 
         <Button

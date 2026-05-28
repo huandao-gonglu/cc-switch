@@ -44,6 +44,19 @@ fn test_parse_deeplink_with_notes() {
 }
 
 #[test]
+fn test_parse_provider_deeplink_preserves_api_mode() {
+    let url = "ccswitch://v1/import?resource=provider&app=hermes&name=Hermes&endpoint=https%3A%2F%2Fapi.example.com&apiKey=key123&apiMode=codex_responses";
+
+    let request = parse_deeplink_url(url).unwrap();
+    let value = serde_json::to_value(request).unwrap();
+
+    assert_eq!(
+        value.get("apiMode").and_then(|v| v.as_str()),
+        Some("codex_responses")
+    );
+}
+
+#[test]
 fn test_parse_invalid_scheme() {
     let url = "https://v1/import?resource=provider&app=claude&name=Test";
 
@@ -135,6 +148,7 @@ fn test_build_gemini_provider_with_model() {
         haiku_model: None,
         sonnet_model: None,
         opus_model: None,
+        api_mode: None,
         config: None,
         config_format: None,
         config_url: None,
@@ -188,6 +202,7 @@ fn test_build_gemini_provider_without_model() {
         haiku_model: None,
         sonnet_model: None,
         opus_model: None,
+        api_mode: None,
         config: None,
         config_format: None,
         config_url: None,
@@ -217,6 +232,74 @@ fn test_build_gemini_provider_without_model() {
 }
 
 #[test]
+fn test_build_hermes_provider_uses_deeplink_api_mode() {
+    use super::provider::build_provider_from_request;
+
+    let request = parse_deeplink_url(
+        "ccswitch://v1/import?resource=provider&app=hermes&name=Hermes&endpoint=https%3A%2F%2Fapi.example.com%2Fv1&apiKey=sk-test&model=gpt-5.5&apiMode=codex_responses",
+    )
+    .unwrap();
+
+    let provider = build_provider_from_request(&AppType::Hermes, &request).unwrap();
+
+    assert_eq!(provider.settings_config["api_mode"], "codex_responses");
+}
+
+#[test]
+fn test_build_openclaw_provider_uses_deeplink_api_protocol() {
+    use super::provider::build_provider_from_request;
+
+    let request = parse_deeplink_url(
+        "ccswitch://v1/import?resource=provider&app=openclaw&name=OpenClaw&endpoint=https%3A%2F%2Fapi.example.com&apiKey=sk-test&model=gpt-5.5&api=openai-responses",
+    )
+    .unwrap();
+
+    let provider = build_provider_from_request(&AppType::OpenClaw, &request).unwrap();
+
+    assert_eq!(provider.settings_config["api"], "openai-responses");
+}
+
+#[test]
+fn test_build_opencode_provider_uses_deeplink_api_mode() {
+    use super::provider::build_provider_from_request;
+
+    let cases = [
+        ("openai-compatible", "@ai-sdk/openai-compatible"),
+        ("openai", "@ai-sdk/openai"),
+        ("anthropic", "@ai-sdk/anthropic"),
+        ("gemini_native", "@ai-sdk/google"),
+    ];
+
+    for (api_mode, npm_package) in cases {
+        let request = parse_deeplink_url(&format!(
+            "ccswitch://v1/import?resource=provider&app=opencode&name=OpenCode&endpoint=https%3A%2F%2Fapi.example.com&apiKey=sk-test&model=gpt-5.5&apiMode={api_mode}",
+        ))
+        .unwrap();
+
+        let provider = build_provider_from_request(&AppType::OpenCode, &request).unwrap();
+
+        assert_eq!(provider.settings_config["npm"], npm_package);
+    }
+}
+
+#[test]
+fn test_build_claude_provider_uses_deeplink_api_format_meta() {
+    use super::provider::build_provider_from_request;
+
+    let request = parse_deeplink_url(
+        "ccswitch://v1/import?resource=provider&app=claude&name=Claude&endpoint=https%3A%2F%2Fapi.example.com&apiKey=sk-test&model=gpt-5.5&apiFormat=openai_responses",
+    )
+    .unwrap();
+
+    let provider = build_provider_from_request(&AppType::Claude, &request).unwrap();
+
+    assert_eq!(
+        provider.meta.and_then(|meta| meta.api_format),
+        Some("openai_responses".to_string())
+    );
+}
+
+#[test]
 fn test_parse_and_merge_config_claude() {
     // Prepare Base64 encoded Claude config
     let config_json = r#"{"env":{"ANTHROPIC_AUTH_TOKEN":"sk-ant-xxx","ANTHROPIC_BASE_URL":"https://api.anthropic.com/v1","ANTHROPIC_MODEL":"claude-sonnet-4.5"}}"#;
@@ -236,6 +319,7 @@ fn test_parse_and_merge_config_claude() {
         haiku_model: None,
         sonnet_model: None,
         opus_model: None,
+        api_mode: None,
         config: Some(config_b64),
         config_format: Some("json".to_string()),
         config_url: None,
@@ -286,6 +370,7 @@ fn test_parse_and_merge_config_url_override() {
         haiku_model: None,
         sonnet_model: None,
         opus_model: None,
+        api_mode: None,
         config: Some(config_b64),
         config_format: Some("json".to_string()),
         config_url: None,

@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+mod api_benchmark;
 mod auth;
 mod balance;
 mod codex_oauth;
@@ -33,6 +34,7 @@ mod usage;
 mod webdav_sync;
 mod workspace;
 
+pub use api_benchmark::*;
 pub use auth::*;
 pub use balance::*;
 pub use codex_oauth::*;

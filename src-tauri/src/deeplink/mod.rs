@@ -78,6 +78,10 @@ pub struct DeepLinkImportRequest {
     /// Optional Opus model (Claude only, v3.7.1+)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opus_model: Option<String>,
+    /// Optional API protocol/format. Meaning is app-specific:
+    /// Claude: apiFormat, Hermes: api_mode, OpenClaw: api.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_mode: Option<String>,
 
     // ============ Prompt-specific fields ============
     /// Base64 encoded Markdown content

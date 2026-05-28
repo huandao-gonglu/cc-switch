@@ -642,7 +642,7 @@
 
                     <div class="form-group">
                         <label>目标应用 *</label>
-                        <input type="text" id="mcpApps" placeholder="例如: claude,codex,gemini 或 claude" />
+                        <input type="text" id="mcpApps" placeholder="例如: claude,codex,gemini,openclaw,hermes 或 claude" />
                         <small style="color: #7f8c8d;">多个应用用逗号分隔</small>
                     </div>
 
@@ -693,6 +693,9 @@
                             <option value="claude">Claude</option>
                             <option value="codex">Codex</option>
                             <option value="gemini">Gemini</option>
+                            <option value="opencode">OpenCode</option>
+                            <option value="openclaw">OpenClaw</option>
+                            <option value="hermes">Hermes</option>
                         </select>
                     </div>
 
@@ -910,6 +913,9 @@
                         <option value="claude">Claude Code</option>
                         <option value="codex">Codex</option>
                         <option value="gemini">Gemini</option>
+                        <option value="opencode">OpenCode</option>
+                        <option value="openclaw">OpenClaw</option>
+                        <option value="hermes">Hermes</option>
                     </select>
                 </div>
 
@@ -1000,6 +1006,15 @@
                     <input type="text" id="model" placeholder="例如: claude-haiku-4.1, gpt-5.1, gemini-3-pro-preview">
                     <small style="color: #7f8c8d; font-size: 12px; display: block; margin-top: 4px;">
                         通用模型字段，适用于所有应用类型
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>API 协议/格式（可选）</label>
+                    <input type="text" id="apiMode"
+                        placeholder="Hermes: codex_responses；OpenClaw: openai-responses；OpenCode: anthropic">
+                    <small style="color: #7f8c8d; font-size: 12px; display: block; margin-top: 4px;">
+                        生成 apiMode 参数。Claude 支持 anthropic/openai_chat/openai_responses/gemini_native；Hermes 支持 chat_completions/anthropic_messages/codex_responses/bedrock_converse；OpenClaw 支持 openai-completions/openai-responses/anthropic-messages/google-generative-ai/bedrock-converse-stream；OpenCode 支持 openai-compatible/openai/anthropic/gemini_native
                     </small>
                 </div>
 
@@ -1293,6 +1308,7 @@ requires_openai_auth = true`;
                 const endpoint = document.getElementById('endpoint').value.trim();
                 const apiKey = document.getElementById('apiKey').value.trim();
                 const model = document.getElementById('model').value.trim();
+                const apiMode = document.getElementById('apiMode').value.trim();
                 const icon = document.getElementById('icon').value.trim();
                 const enabled = document.getElementById('enabled').value;
                 const notes = document.getElementById('notes').value.trim();
@@ -1341,6 +1357,7 @@ requires_openai_auth = true`;
 
                 params.append('apiKey', apiKey);
                 if (model) params.append('model', model);
+                if (apiMode) params.append('apiMode', apiMode);
                 if (icon) params.append('icon', icon);
                 if (enabled) params.append('enabled', enabled);
                 if (notes) params.append('notes', notes);
@@ -1354,6 +1371,7 @@ requires_openai_auth = true`;
             } else {
                 // 配置文件模式
                 let configJson = '';
+                const apiMode = document.getElementById('apiMode').value.trim();
 
                 if (app === 'codex') {
                     // Codex 特殊处理：合并 Auth JSON 和 Config TOML
@@ -1427,6 +1445,7 @@ requires_openai_auth = true`;
                 }
 
                 if (model) params.append('model', model);
+                if (apiMode) params.append('apiMode', apiMode);
                 if (icon) params.append('icon', icon);
                 if (enabled) params.append('enabled', enabled);
                 if (notes) params.append('notes', notes);
@@ -1570,7 +1589,7 @@ requires_openai_auth = true`;
                 `;
 
                 // 常规参数（排除 endpoint，单独处理）
-                const regularParams = ['homepage', 'apiKey', 'model', 'notes'];
+                const regularParams = ['homepage', 'apiKey', 'model', 'apiMode', 'api_mode', 'apiFormat', 'api', 'apiProtocol', 'notes'];
                 regularParams.forEach(key => {
                     if (paramsObj[key]) {
                         let displayValue = paramsObj[key];

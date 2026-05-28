@@ -150,8 +150,8 @@ pub(crate) fn build_provider_from_request(
         AppType::Hermes => build_hermes_settings(request),
     };
 
-    // Build usage script configuration if provided
-    let mut meta = build_provider_meta(request)?;
+    // Build provider metadata if provided
+    let mut meta = build_provider_meta(app_type, request)?;
     if matches!(app_type, AppType::ClaudeDesktop) {
         meta.get_or_insert_with(ProviderMeta::default)
             .claude_desktop_mode = Some(ClaudeDesktopMode::Direct);
@@ -186,61 +186,171 @@ fn get_primary_endpoint(request: &DeepLinkImportRequest) -> String {
 }
 
 /// Build provider meta with usage script configuration
-fn build_provider_meta(request: &DeepLinkImportRequest) -> Result<Option<ProviderMeta>, AppError> {
-    // Check if any usage script fields are provided
-    if request.usage_script.is_none()
-        && request.usage_enabled.is_none()
-        && request.usage_api_key.is_none()
-        && request.usage_base_url.is_none()
-        && request.usage_access_token.is_none()
-        && request.usage_user_id.is_none()
-        && request.usage_auto_interval.is_none()
-    {
-        return Ok(None);
+fn build_provider_meta(
+    app_type: &AppType,
+    request: &DeepLinkImportRequest,
+) -> Result<Option<ProviderMeta>, AppError> {
+    let mut meta = ProviderMeta::default();
+
+    if matches!(app_type, AppType::Claude | AppType::ClaudeDesktop) {
+        apply_claude_api_format_meta(request, &mut meta);
     }
 
-    // Decode usage script code if provided
-    let code = if let Some(script_b64) = &request.usage_script {
-        let decoded = decode_base64_param("usage_script", script_b64)?;
-        String::from_utf8(decoded)
-            .map_err(|e| AppError::InvalidInput(format!("Invalid UTF-8 in usage_script: {e}")))?
+    // Check if any usage script fields are provided
+    if request.usage_script.is_some()
+        || request.usage_enabled.is_some()
+        || request.usage_api_key.is_some()
+        || request.usage_base_url.is_some()
+        || request.usage_access_token.is_some()
+        || request.usage_user_id.is_some()
+        || request.usage_auto_interval.is_some()
+    {
+        // Decode usage script code if provided
+        let code = if let Some(script_b64) = &request.usage_script {
+            let decoded = decode_base64_param("usage_script", script_b64)?;
+            String::from_utf8(decoded).map_err(|e| {
+                AppError::InvalidInput(format!("Invalid UTF-8 in usage_script: {e}"))
+            })?
+        } else {
+            String::new()
+        };
+
+        // Determine enabled state: explicit param > has code > false
+        let enabled = request.usage_enabled.unwrap_or(!code.is_empty());
+
+        // Build UsageScript - use provider's API key and endpoint as defaults
+        // Note: use primary endpoint only (first one if comma-separated)
+        meta.usage_script = Some(UsageScript {
+            enabled,
+            language: "javascript".to_string(),
+            code,
+            timeout: Some(10),
+            api_key: request
+                .usage_api_key
+                .clone()
+                .or_else(|| request.api_key.clone()),
+            base_url: request.usage_base_url.clone().or_else(|| {
+                let primary = get_primary_endpoint(request);
+                if primary.is_empty() {
+                    None
+                } else {
+                    Some(primary)
+                }
+            }),
+            access_token: request.usage_access_token.clone(),
+            user_id: request.usage_user_id.clone(),
+            template_type: None, // Deeplink providers don't specify template type (will use backward compatibility logic)
+            auto_query_interval: request.usage_auto_interval,
+            coding_plan_provider: None,
+        });
+    }
+
+    if meta.usage_script.is_some() || meta.api_format.is_some() {
+        Ok(Some(meta))
     } else {
-        String::new()
-    };
+        Ok(None)
+    }
+}
 
-    // Determine enabled state: explicit param > has code > false
-    let enabled = request.usage_enabled.unwrap_or(!code.is_empty());
+fn apply_claude_api_format_meta(request: &DeepLinkImportRequest, meta: &mut ProviderMeta) {
+    if let Some(api_format) = normalize_claude_api_format(request.api_mode.as_deref()) {
+        meta.api_format = Some(api_format.to_string());
+    }
+}
 
-    // Build UsageScript - use provider's API key and endpoint as defaults
-    // Note: use primary endpoint only (first one if comma-separated)
-    let usage_script = UsageScript {
-        enabled,
-        language: "javascript".to_string(),
-        code,
-        timeout: Some(10),
-        api_key: request
-            .usage_api_key
-            .clone()
-            .or_else(|| request.api_key.clone()),
-        base_url: request.usage_base_url.clone().or_else(|| {
-            let primary = get_primary_endpoint(request);
-            if primary.is_empty() {
-                None
-            } else {
-                Some(primary)
-            }
-        }),
-        access_token: request.usage_access_token.clone(),
-        user_id: request.usage_user_id.clone(),
-        template_type: None, // Deeplink providers don't specify template type (will use backward compatibility logic)
-        auto_query_interval: request.usage_auto_interval,
-        coding_plan_provider: None,
-    };
+fn normalize_claude_api_format(value: Option<&str>) -> Option<&'static str> {
+    match value.map(normalize_api_token).as_deref() {
+        Some("anthropic") | Some("anthropic_messages") | Some("anthropic-messages") => {
+            Some("anthropic")
+        }
+        Some("openai_chat")
+        | Some("openai-chat")
+        | Some("openai_completions")
+        | Some("openai-completions")
+        | Some("chat_completions")
+        | Some("chat-completions") => Some("openai_chat"),
+        Some("openai_responses")
+        | Some("openai-responses")
+        | Some("codex_responses")
+        | Some("codex-responses") => Some("openai_responses"),
+        Some("gemini_native") | Some("gemini-native") => Some("gemini_native"),
+        _ => None,
+    }
+}
 
-    Ok(Some(ProviderMeta {
-        usage_script: Some(usage_script),
-        ..Default::default()
-    }))
+fn normalize_hermes_api_mode(value: Option<&str>) -> &'static str {
+    match value.map(normalize_api_token).as_deref() {
+        Some("chat_completions")
+        | Some("chat-completions")
+        | Some("openai_chat")
+        | Some("openai-chat")
+        | Some("openai_completions")
+        | Some("openai-completions") => "chat_completions",
+        Some("anthropic_messages") | Some("anthropic-messages") => "anthropic_messages",
+        Some("codex_responses")
+        | Some("codex-responses")
+        | Some("openai_responses")
+        | Some("openai-responses") => "codex_responses",
+        Some("bedrock_converse")
+        | Some("bedrock-converse")
+        | Some("bedrock_converse_stream")
+        | Some("bedrock-converse-stream") => "bedrock_converse",
+        _ => "chat_completions",
+    }
+}
+
+fn normalize_openclaw_api(value: Option<&str>) -> &'static str {
+    match value.map(normalize_api_token).as_deref() {
+        Some("openai_completions")
+        | Some("openai-completions")
+        | Some("openai_chat")
+        | Some("openai-chat")
+        | Some("chat_completions")
+        | Some("chat-completions") => "openai-completions",
+        Some("openai_responses")
+        | Some("openai-responses")
+        | Some("codex_responses")
+        | Some("codex-responses") => "openai-responses",
+        Some("anthropic_messages") | Some("anthropic-messages") => "anthropic-messages",
+        Some("google_generative_ai")
+        | Some("google-generative-ai")
+        | Some("gemini_native")
+        | Some("gemini-native") => "google-generative-ai",
+        Some("bedrock_converse_stream")
+        | Some("bedrock-converse-stream")
+        | Some("bedrock_converse")
+        | Some("bedrock-converse") => "bedrock-converse-stream",
+        _ => "openai-completions",
+    }
+}
+
+fn normalize_opencode_npm(value: Option<&str>) -> &'static str {
+    match value.map(normalize_api_token).as_deref() {
+        Some("openai_compatible")
+        | Some("openai-compatible")
+        | Some("openai_completions")
+        | Some("openai-completions")
+        | Some("chat_completions")
+        | Some("chat-completions") => "@ai-sdk/openai-compatible",
+        Some("openai")
+        | Some("openai_responses")
+        | Some("openai-responses")
+        | Some("codex_responses")
+        | Some("codex-responses") => "@ai-sdk/openai",
+        Some("anthropic") | Some("anthropic_messages") | Some("anthropic-messages") => {
+            "@ai-sdk/anthropic"
+        }
+        Some("google")
+        | Some("google_generative_ai")
+        | Some("google-generative-ai")
+        | Some("gemini_native")
+        | Some("gemini-native") => "@ai-sdk/google",
+        _ => "@ai-sdk/openai-compatible",
+    }
+}
+
+fn normalize_api_token(value: &str) -> String {
+    value.trim().to_lowercase()
 }
 
 /// Build Claude settings configuration
@@ -390,9 +500,8 @@ fn build_opencode_settings(request: &DeepLinkImportRequest) -> serde_json::Value
         models.insert(model.clone(), json!({ "name": model }));
     }
 
-    // Default to openai-compatible npm package
     json!({
-        "npm": "@ai-sdk/openai-compatible",
+        "npm": normalize_opencode_npm(request.api_mode.as_deref()),
         "options": options,
         "models": models
     })
@@ -413,7 +522,10 @@ fn build_additive_app_settings(request: &DeepLinkImportRequest) -> serde_json::V
         config.insert("apiKey".to_string(), json!(api_key));
     }
 
-    config.insert("api".to_string(), json!("openai-completions"));
+    config.insert(
+        "api".to_string(),
+        json!(normalize_openclaw_api(request.api_mode.as_deref())),
+    );
 
     if let Some(model) = &request.model {
         config.insert(
@@ -432,11 +544,10 @@ fn build_additive_app_settings(request: &DeepLinkImportRequest) -> serde_json::V
 /// Emitting camelCase here — as the OpenClaw path does — would poison the
 /// YAML with unknown root fields the Hermes runtime ignores.
 ///
-/// `api_mode` is always written explicitly. Deeplinks have no field to carry
-/// it, so we default to `chat_completions` (the most widely compatible
-/// protocol) and let the user adjust via the UI after import. We never rely
-/// on Hermes' built-in URL heuristics, which only recognize a handful of
-/// official endpoints.
+/// `api_mode` is always written explicitly. Deeplinks can override it with
+/// `apiMode` (or legacy aliases); unsupported values fall back to
+/// `chat_completions` so Hermes never relies on URL heuristics that only
+/// recognize a handful of official endpoints.
 fn build_hermes_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
     let endpoint = get_primary_endpoint(request);
 
@@ -454,7 +565,10 @@ fn build_hermes_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
         config.insert("api_key".to_string(), json!(api_key));
     }
 
-    config.insert("api_mode".to_string(), json!("chat_completions"));
+    config.insert(
+        "api_mode".to_string(),
+        json!(normalize_hermes_api_mode(request.api_mode.as_deref())),
+    );
 
     if let Some(model) = &request.model {
         config.insert(
@@ -768,6 +882,7 @@ mod tests {
             endpoint: Some("https://api.example.com/v1".to_string()),
             api_key: Some("sk-test".to_string()),
             model: Some("anthropic/claude-opus-4-7".to_string()),
+            api_mode: None,
             ..Default::default()
         }
     }
@@ -811,6 +926,7 @@ mod tests {
             endpoint: None,
             api_key: None,
             model: None,
+            api_mode: None,
             ..Default::default()
         };
         let settings = build_hermes_settings(&request);
@@ -833,6 +949,7 @@ mod tests {
             name: Some("c".to_string()),
             endpoint: Some("https://api.example.com".to_string()),
             api_key: Some("k".to_string()),
+            api_mode: None,
             ..Default::default()
         };
         let settings = build_additive_app_settings(&request);
